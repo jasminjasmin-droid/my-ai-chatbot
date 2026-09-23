@@ -8,20 +8,9 @@ from google import genai
 
 st.set_page_config(
     page_title="Minizo",
-    page_icon="🤖"
+    page_icon="🤖",
+    layout="centered"
 )
-
-st.title("🤖 kudos ...Minizo here!!")
-st.write("Chat with Gemini!")
-
-
-# -----------------------------
-# Clear Chat button
-# -----------------------------
-
-if st.button("🗑️ Clear Chat"):
-    st.session_state.messages = []
-    st.rerun()
 
 
 # -----------------------------
@@ -32,11 +21,97 @@ client = genai.Client()
 
 
 # -----------------------------
+# Minizo's personality
+# -----------------------------
+
+system_instruction = """
+You are Minizo, a friendly AI chatbot.
+
+Your personality:
+- Be friendly, warm, and helpful.
+- Explain things in simple language.
+- Be encouraging when the user is learning.
+- Keep answers clear and easy to understand.
+- If you don't know something, say so honestly.
+- Do not pretend to have personal experiences or feelings.
+"""
+
+
+# -----------------------------
 # Store conversation
 # -----------------------------
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+
+# -----------------------------
+# Sidebar
+# -----------------------------
+
+with st.sidebar:
+
+    st.title("🤖 Minizo")
+
+    st.write("Your friendly AI chatbot.")
+
+    st.divider()
+
+    st.subheader("✨ Features")
+
+    st.write("💬 Chat with Gemini")
+    st.write("🧠 Conversation memory")
+    st.write("🗑️ Clear conversations")
+    st.write("📚 Simple explanations")
+
+    st.divider()
+
+    if st.button("🗑️ Clear Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+
+    st.divider()
+
+    st.caption("Minizo v0.1")
+
+
+# -----------------------------
+# Main page
+# -----------------------------
+
+st.title("🤖 kudos ...Minizo here!!")
+
+
+# -----------------------------
+# Welcome screen
+# -----------------------------
+
+if not st.session_state.messages:
+
+    st.markdown(
+        """
+        ### 👋 Hey! I'm Minizo
+
+        Your friendly AI chatbot.
+
+        Ask me anything, learn something new, or just have a conversation with me!
+        """
+    )
+
+    st.divider()
+
+    st.subheader("💡 Try asking me")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.info("🐍 Learn Python")
+
+    with col2:
+        st.info("💻 Debug my code")
+
+    with col3:
+        st.info("🧠 Explain a concept")
 
 
 # -----------------------------
@@ -50,10 +125,10 @@ for message in st.session_state.messages:
 
 
 # -----------------------------
-# Get user's message
+# Chat input
 # -----------------------------
 
-user_message = st.chat_input("Type your message...")
+user_message = st.chat_input("Talk to Minizo...")
 
 
 # -----------------------------
@@ -100,10 +175,24 @@ if user_message:
     # Send conversation to Gemini
     # -----------------------------
 
-    response = client.models.generate_content(
-        model="gemini-3-flash-preview",
-        contents=conversation
-    )
+    try:
+
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=conversation,
+            config={
+                "system_instruction": system_instruction
+            }
+        )
+
+        response_text = response.text
+
+    except Exception:
+
+        response_text = (
+            "I'm temporarily unable to respond because the Gemini API "
+            "quota has been reached. Please try again later."
+        )
 
 
     # -----------------------------
@@ -111,7 +200,7 @@ if user_message:
     # -----------------------------
 
     with st.chat_message("assistant"):
-        st.write(response.text)
+        st.write(response_text)
 
 
     # -----------------------------
@@ -120,5 +209,5 @@ if user_message:
 
     st.session_state.messages.append({
         "role": "assistant",
-        "content": response.text
+        "content": response_text
     })
