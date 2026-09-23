@@ -1,17 +1,27 @@
 import streamlit as st
 from google import genai
 
+
 # -----------------------------
 # Page settings
 # -----------------------------
 
 st.set_page_config(
-    page_title="Milo",
+    page_title="Minizo",
     page_icon="🤖"
 )
 
-st.title("🤖 kudos ...Milo here!!")
+st.title("🤖 kudos ...Minizo here!!")
 st.write("Chat with Gemini!")
+
+
+# -----------------------------
+# Clear Chat button
+# -----------------------------
+
+if st.button("🗑️ Clear Chat"):
+    st.session_state.messages = []
+    st.rerun()
 
 
 # -----------------------------
@@ -97,14 +107,17 @@ if user_message:
 
 
     # -----------------------------
-    # Display Milo's response
+    # Display Minizo's response
     # -----------------------------
 
     with st.chat_message("assistant"):
         st.write(response.text)
 
 
-    # Save Milo's response
+    # -----------------------------
+    # Save Minizo's response
+    # -----------------------------
+
     st.session_state.messages.append({
         "role": "assistant",
         "content": response.text
