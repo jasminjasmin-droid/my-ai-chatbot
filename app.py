@@ -2,9 +2,9 @@ import streamlit as st
 from google import genai
 
 
-# -----------------------------
-# Page settings
-# -----------------------------
+# ============================================================
+# PAGE SETTINGS
+# ============================================================
 
 st.set_page_config(
     page_title="Minizo",
@@ -13,16 +13,16 @@ st.set_page_config(
 )
 
 
-# -----------------------------
-# Create Gemini client
-# -----------------------------
+# ============================================================
+# GEMINI CLIENT
+# ============================================================
 
 client = genai.Client()
 
 
-# -----------------------------
-# Minizo's personality
-# -----------------------------
+# ============================================================
+# MINIZO PERSONALITY
+# ============================================================
 
 system_instruction = """
 You are Minizo, a friendly AI chatbot.
@@ -37,17 +37,17 @@ Your personality:
 """
 
 
-# -----------------------------
-# Store conversation
-# -----------------------------
+# ============================================================
+# CONVERSATION MEMORY
+# ============================================================
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 
-# -----------------------------
-# Function to get Gemini response
-# -----------------------------
+# ============================================================
+# GET RESPONSE FROM GEMINI
+# ============================================================
 
 def get_gemini_response(messages):
 
@@ -82,9 +82,46 @@ def get_gemini_response(messages):
     return response.text
 
 
-# -----------------------------
-# Sidebar
-# -----------------------------
+# ============================================================
+# SEND A MESSAGE
+# ============================================================
+
+def send_message(user_message):
+
+    # Save user message
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_message
+        }
+    )
+
+    try:
+
+        response_text = get_gemini_response(
+            st.session_state.messages
+        )
+
+    except Exception:
+
+        response_text = (
+            "I'm temporarily unable to respond because "
+            "the Gemini API quota has been reached. "
+            "Please try again later."
+        )
+
+    # Save Minizo response
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": response_text
+        }
+    )
+
+
+# ============================================================
+# SIDEBAR
+# ============================================================
 
 with st.sidebar:
 
@@ -106,9 +143,9 @@ with st.sidebar:
     st.divider()
 
 
-    # -----------------------------
-    # Clear Chat
-    # -----------------------------
+    # ========================================================
+    # CLEAR CHAT
+    # ========================================================
 
     if st.button(
         "🗑️ Clear Chat",
@@ -120,9 +157,9 @@ with st.sidebar:
         st.rerun()
 
 
-    # -----------------------------
-    # Download conversation
-    # -----------------------------
+    # ========================================================
+    # DOWNLOAD CHAT
+    # ========================================================
 
     if st.session_state.messages:
 
@@ -144,7 +181,6 @@ with st.sidebar:
                     f"{message['content']}\n\n"
                 )
 
-
         st.download_button(
             label="📥 Download Chat",
             data=chat_text,
@@ -159,16 +195,16 @@ with st.sidebar:
     st.caption("Minizo v0.1")
 
 
-# -----------------------------
-# Main page
-# -----------------------------
+# ============================================================
+# MAIN TITLE
+# ============================================================
 
 st.title("🤖 kudos ...Minizo here!!")
 
 
-# -----------------------------
-# Welcome screen
-# -----------------------------
+# ============================================================
+# WELCOME SCREEN
+# ============================================================
 
 if not st.session_state.messages:
 
@@ -187,21 +223,97 @@ if not st.session_state.messages:
 
     st.subheader("💡 Try asking me")
 
-    col1, col2, col3 = st.columns(3)
+
+    # ========================================================
+    # SUGGESTED PROMPT BUTTONS
+    # ========================================================
+
+    col1, col2 = st.columns(2)
+
+
+    # --------------------------------------------------------
+    # LEARN PYTHON
+    # --------------------------------------------------------
 
     with col1:
-        st.info("🐍 Learn Python")
+
+        if st.button(
+            "🐍 Learn Python",
+            use_container_width=True
+        ):
+
+            send_message(
+                "Teach me Python from the absolute beginner level. "
+                "Explain it simply and give me a small example."
+            )
+
+            st.rerun()
+
+
+    # --------------------------------------------------------
+    # DEBUG CODE
+    # --------------------------------------------------------
 
     with col2:
-        st.info("💻 Debug my code")
 
-    with col3:
-        st.info("🧠 Explain a concept")
+        if st.button(
+            "💻 Debug my code",
+            use_container_width=True
+        ):
+
+            send_message(
+                "I want help debugging my code. "
+                "Please ask me to paste my code and explain "
+                "what error or problem I am facing."
+            )
+
+            st.rerun()
 
 
-# -----------------------------
-# Display messages
-# -----------------------------
+    # --------------------------------------------------------
+    # EXPLAIN CONCEPT
+    # --------------------------------------------------------
+
+    with col1:
+
+        if st.button(
+            "🧠 Explain a concept",
+            use_container_width=True
+        ):
+
+            send_message(
+                "I want to learn a concept. "
+                "Please ask me which concept I want explained, "
+                "then explain it in very simple language with "
+                "an example."
+            )
+
+            st.rerun()
+
+
+    # --------------------------------------------------------
+    # STUDY HELP
+    # --------------------------------------------------------
+
+    with col2:
+
+        if st.button(
+            "📚 Help me study",
+            use_container_width=True
+        ):
+
+            send_message(
+                "Help me study. Ask me what subject or topic "
+                "I am studying and then help me learn it step "
+                "by step using simple explanations."
+            )
+
+            st.rerun()
+
+
+# ============================================================
+# DISPLAY CHAT HISTORY
+# ============================================================
 
 for index, message in enumerate(
     st.session_state.messages
@@ -212,9 +324,9 @@ for index, message in enumerate(
         st.write(message["content"])
 
 
-        # -----------------------------
-        # Regenerate button
-        # -----------------------------
+        # ====================================================
+        # REGENERATE LAST RESPONSE
+        # ====================================================
 
         if (
             message["role"] == "assistant"
@@ -223,10 +335,10 @@ for index, message in enumerate(
 
             if st.button(
                 "🔄 Regenerate Response",
-                key="regenerate"
+                key="regenerate_response"
             ):
 
-                # Remove old response
+                # Remove previous AI response
                 st.session_state.messages.pop()
 
                 try:
@@ -258,62 +370,21 @@ for index, message in enumerate(
                 st.rerun()
 
 
-# -----------------------------
-# Chat input
-# -----------------------------
+# ============================================================
+# CHAT INPUT
+# ============================================================
 
 user_message = st.chat_input(
     "Talk to Minizo..."
 )
 
 
-# -----------------------------
-# New user message
-# -----------------------------
+# ============================================================
+# HANDLE USER MESSAGE
+# ============================================================
 
 if user_message:
 
-    # Save user message
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": user_message
-        }
-    )
+    send_message(user_message)
 
-
-    # Display user message
-    with st.chat_message("user"):
-
-        st.write(user_message)
-
-
-    # Get Gemini response
-    try:
-
-        response_text = get_gemini_response(
-            st.session_state.messages
-        )
-
-    except Exception:
-
-        response_text = (
-            "I'm temporarily unable to respond because "
-            "the Gemini API quota has been reached. "
-            "Please try again later."
-        )
-
-
-    # Display response
-    with st.chat_message("assistant"):
-
-        st.write(response_text)
-
-
-    # Save response
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": response_text
-        }
-    )
+    st.rerun()
