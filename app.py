@@ -46,6 +46,43 @@ if "messages" not in st.session_state:
 
 
 # -----------------------------
+# Function to get Gemini response
+# -----------------------------
+
+def get_gemini_response(messages):
+
+    conversation = []
+
+    for message in messages:
+
+        if message["role"] == "user":
+            gemini_role = "user"
+        else:
+            gemini_role = "model"
+
+        conversation.append(
+            {
+                "role": gemini_role,
+                "parts": [
+                    {
+                        "text": message["content"]
+                    }
+                ]
+            }
+        )
+
+    response = client.models.generate_content(
+        model="gemini-3-flash-preview",
+        contents=conversation,
+        config={
+            "system_instruction": system_instruction
+        }
+    )
+
+    return response.text
+
+
+# -----------------------------
 # Sidebar
 # -----------------------------
 
@@ -63,12 +100,59 @@ with st.sidebar:
     st.write("🧠 Conversation memory")
     st.write("🗑️ Clear conversations")
     st.write("📚 Simple explanations")
+    st.write("📥 Download conversations")
+    st.write("🔄 Regenerate responses")
 
     st.divider()
 
-    if st.button("🗑️ Clear Chat", use_container_width=True):
+
+    # -----------------------------
+    # Clear Chat
+    # -----------------------------
+
+    if st.button(
+        "🗑️ Clear Chat",
+        use_container_width=True
+    ):
+
         st.session_state.messages = []
+
         st.rerun()
+
+
+    # -----------------------------
+    # Download conversation
+    # -----------------------------
+
+    if st.session_state.messages:
+
+        chat_text = ""
+
+        for message in st.session_state.messages:
+
+            if message["role"] == "user":
+
+                chat_text += (
+                    f"You:\n"
+                    f"{message['content']}\n\n"
+                )
+
+            else:
+
+                chat_text += (
+                    f"Minizo:\n"
+                    f"{message['content']}\n\n"
+                )
+
+
+        st.download_button(
+            label="📥 Download Chat",
+            data=chat_text,
+            file_name="minizo_chat.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+
 
     st.divider()
 
@@ -94,7 +178,8 @@ if not st.session_state.messages:
 
         Your friendly AI chatbot.
 
-        Ask me anything, learn something new, or just have a conversation with me!
+        Ask me anything, learn something new,
+        or just have a conversation with me!
         """
     )
 
@@ -115,99 +200,120 @@ if not st.session_state.messages:
 
 
 # -----------------------------
-# Display previous messages
+# Display messages
 # -----------------------------
 
-for message in st.session_state.messages:
+for index, message in enumerate(
+    st.session_state.messages
+):
 
     with st.chat_message(message["role"]):
+
         st.write(message["content"])
+
+
+        # -----------------------------
+        # Regenerate button
+        # -----------------------------
+
+        if (
+            message["role"] == "assistant"
+            and index == len(st.session_state.messages) - 1
+        ):
+
+            if st.button(
+                "🔄 Regenerate Response",
+                key="regenerate"
+            ):
+
+                # Remove old response
+                st.session_state.messages.pop()
+
+                try:
+
+                    new_response = get_gemini_response(
+                        st.session_state.messages
+                    )
+
+                    st.session_state.messages.append(
+                        {
+                            "role": "assistant",
+                            "content": new_response
+                        }
+                    )
+
+                except Exception:
+
+                    st.session_state.messages.append(
+                        {
+                            "role": "assistant",
+                            "content": (
+                                "I'm temporarily unable to respond "
+                                "because the Gemini API quota has "
+                                "been reached. Please try again later."
+                            )
+                        }
+                    )
+
+                st.rerun()
 
 
 # -----------------------------
 # Chat input
 # -----------------------------
 
-user_message = st.chat_input("Talk to Minizo...")
+user_message = st.chat_input(
+    "Talk to Minizo..."
+)
 
 
 # -----------------------------
-# Talk to Gemini
+# New user message
 # -----------------------------
 
 if user_message:
 
-    # Save user's message
-    st.session_state.messages.append({
-        "role": "user",
-        "content": user_message
-    })
+    # Save user message
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_message
+        }
+    )
 
-    # Display user's message
+
+    # Display user message
     with st.chat_message("user"):
+
         st.write(user_message)
 
 
-    # -----------------------------
-    # Convert conversation for Gemini
-    # -----------------------------
-
-    conversation = []
-
-    for message in st.session_state.messages:
-
-        if message["role"] == "user":
-            gemini_role = "user"
-        else:
-            gemini_role = "model"
-
-        conversation.append({
-            "role": gemini_role,
-            "parts": [
-                {
-                    "text": message["content"]
-                }
-            ]
-        })
-
-
-    # -----------------------------
-    # Send conversation to Gemini
-    # -----------------------------
-
+    # Get Gemini response
     try:
 
-        response = client.models.generate_content(
-            model="gemini-3-flash-preview",
-            contents=conversation,
-            config={
-                "system_instruction": system_instruction
-            }
+        response_text = get_gemini_response(
+            st.session_state.messages
         )
-
-        response_text = response.text
 
     except Exception:
 
         response_text = (
-            "I'm temporarily unable to respond because the Gemini API "
-            "quota has been reached. Please try again later."
+            "I'm temporarily unable to respond because "
+            "the Gemini API quota has been reached. "
+            "Please try again later."
         )
 
 
-    # -----------------------------
-    # Display Minizo's response
-    # -----------------------------
-
+    # Display response
     with st.chat_message("assistant"):
+
         st.write(response_text)
 
 
-    # -----------------------------
-    # Save Minizo's response
-    # -----------------------------
-
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": response_text
-    })
+    # Save response
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": response_text
+        }
+    )
